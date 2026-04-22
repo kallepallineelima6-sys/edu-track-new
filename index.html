@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduTrack Pro | AI & Firebase Powered Analytics</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            transition: all 0.3s ease;
+            background-color: #0f172a;
+            color: white;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 1.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .glass-card:hover {
+            border-color: rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .gradient-header {
+            background: linear-gradient(135deg, #1e40af 0%, #7e22ce 100%);
+        }
+
+        .sidebar-link.active {
+            background: rgba(255, 255, 255, 0.15);
+            color: white !important;
+            border-left: 4px solid #6366f1;
+        }
+
+        .sidebar-link:hover:not(.active) {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .section {
+            display: none;
+        }
+
+        .section.active {
+            display: block;
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .progress-container {
+            background: rgba(255, 255, 255, 0.1);
+            height: 8px;
+            border-radius: 999px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            transition: width 1s cubic-bezier(0.65, 0, 0.35, 1);
+        }
+
+        .status-badge {
+            @apply flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest;
+        }
+
+        .student-card.selected {
+            border-color: #6366f1;
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+
+        #demo-toast {
+            transition: all 0.5s ease;
+            transform: translateY(100px);
+            opacity: 0;
+        }
+
+        #demo-toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .loading-pulse {
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.6;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+
+<body class="min-h-screen overflow-hidden">
+    <!-- Auth Screen -->
+    <div id="auth-screen" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900 p-4">
+        <div class="glass-card p-10 w-full max-w-md space-y-8 text-center">
+            <div class="flex flex-col items-center gap-4">
+                <div class="p-4 bg-indigo-600 rounded-2xl shadow-xl shadow-indigo-900/50"><i data-lucide="zap"
+                        class="w-10 h-10"></i></div>
+                <h1 class="text-3xl font-black tracking-tighter">EduTrack Pro</h1>
+                <p class="text-slate-400 font-medium" id="auth-desc">Please sign in to continue</p>
+            </div>
+            <div id="login-error"
+                class="hidden py-3 px-4 bg-rose-500/20 text-rose-400 rounded-xl text-xs font-bold border border-rose-500/30">
+            </div>
+            <form id="login-form" class="space-y-4">
+                <input type="email" id="login-email" placeholder="Email Address" required
+                    class="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all">
+                <input type="password" id="login-password" placeholder="Password" required
+                    class="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all">
+                <button type="submit" id="btn-login"
+                    class="w-full py-4 bg-indigo-600 text-white font-black rounded-2xl hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-900/40 flex items-center justify-center gap-2">
+                    <span id="login-btn-text">Sign In</span>
+                </button>
+            </form>
+            <div class="pt-4">
+                <button onclick="toggleAuthMode()" id="auth-toggle-btn"
+                    class="text-indigo-400 hover:text-indigo-300 text-sm font-bold transition-all">Don't have an
+                    account? Sign Up</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App Container -->
+    <div id="app-container" class="flex h-screen hidden">
+        <!-- Sidebar -->
+        <aside class="w-72 bg-slate-900 border-r border-white/5 hidden lg:flex flex-col">
+            <div class="p-8">
+                <div class="flex items-center gap-3 text-indigo-500 font-black text-2xl tracking-tighter">
+                    <i data-lucide="zap"></i> EduTrack
+                </div>
+            </div>
+            <nav class="flex-1 px-4 space-y-2">
+                <button onclick="showSection('dashboard')" id="nav-dashboard"
+                    class="sidebar-link active w-full flex items-center gap-3 px-6 py-4 rounded-2xl font-bold text-slate-400 transition-all">
+                    <i data-lucide="layout-dashboard"></i> Dashboard
+                </button>
+                <button onclick="showSection('attendance')" id="nav-attendance"
+                    class="sidebar-link w-full flex items-center gap-3 px-6 py-4 rounded-2xl font-bold text-slate-400 transition-all">
+                    <i data-lucide="map-pin"></i> Attendance
+                </button>
+                <button onclick="showSection('admin-panel')" id="nav-admin-panel"
+                    class="sidebar-link w-full flex items-center gap-3 px-6 py-4 rounded-2xl font-bold text-slate-400 transition-all">
+                    <i data-lucide="shield-check"></i> Teacher Panel
+                </button>
+                <button onclick="showSection('students-list')" id="nav-students-list"
+                    class="sidebar-link w-full flex items-center gap-3 px-6 py-4 rounded-2xl font-bold text-slate-400 transition-all">
+                    <i data-lucide="users"></i> Students
+                </button>
+                <button onclick="showSection('management')" id="nav-management"
+                    class="sidebar-link w-full flex items-center gap-3 px-6 py-4 rounded-2xl font-bold text-slate-400 transition-all">
+                    <i data-lucide="plus-circle"></i> Add/Edit
+                </button>
+                <button onclick="showSection('logic')" id="nav-logic"
+                    class="sidebar-link w-full flex items-center gap-3 px-6 py-4 rounded-2xl font-bold text-slate-400 transition-all">
+                    <i data-lucide="git-branch"></i> Logic Flow
+                </button>
+            </nav>
+            <div class="p-6 mt-auto">
+                <button onclick="handleLogout()"
+                    class="w-full flex items-center gap-3 px-6 py-4 rounded-2xl font-bold text-rose-400 hover:bg-rose-400/10 transition-all">
+                    <i data-lucide="log-out"></i> Sign Out
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Area -->
+        <main class="flex-1 overflow-y-auto relative">
+            <!-- Top Header -->
+            <header class="gradient-header py-12 px-10 relative overflow-hidden shadow-2xl">
+                <div class="absolute top-0 right-0 p-10 opacity-10 pointer-events-none"><i data-lucide="bar-chart-3"
+                        class="w-48 h-48"></i></div>
+                <div class="flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
+                    <div>
+                        <h1 class="text-3xl font-black tracking-tight" id="header-title">Performance Overview</h1>
+                        <p class="text-blue-200 text-sm font-bold uppercase tracking-widest mt-1">Real-time Student
+                            Analytics</p>
+                    </div>
+                    <!-- Search Bar -->
+                    <div class="relative w-full md:w-96 group">
+                        <i data-lucide="search"
+                            class="w-5 h-5 absolute left-5 top-1/2 -translate-y-1/2 text-white/40 group-focus-within:text-white transition-colors"></i>
+                        <input type="text" id="student-search" onkeyup="handleSearch()"
+                            placeholder="Search student by name..."
+                            class="w-full pl-14 pr-6 py-4 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl text-white placeholder-white/30 outline-none focus:ring-2 focus:ring-indigo-500 transition-all">
+                    </div>
+                </div>
+            </header>
+
+            <!-- Dashboard Section -->
+            <div id="dashboard" class="section active p-10 space-y-10">
+                <div id="selected-student-view" class="hidden space-y-10">
+                    <!-- Cards Grid -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                        <div class="glass-card p-8 flex flex-col items-center text-center">
+                            <div class="p-4 bg-blue-500/10 text-blue-400 rounded-2xl mb-6"><i
+                                    data-lucide="calendar"></i></div>
+                            <h4 class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-1">Attendance
+                            </h4>
+                            <p class="text-4xl font-black text-white" id="dash-attendance">0%</p>
+                        </div>
+                        <div class="glass-card p-8 flex flex-col items-center text-center">
+                            <div class="p-4 bg-purple-500/10 text-purple-400 rounded-2xl mb-6"><i
+                                    data-lucide="award"></i></div>
+                            <h4 class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-1">Overall
+                                Percentage</h4>
+                            <p class="text-4xl font-black text-white" id="dash-percentage">0%</p>
+                        </div>
+                        <div class="glass-card p-8">
+                            <div class="flex justify-between items-center mb-6">
+                                <div class="p-4 bg-emerald-500/10 text-emerald-400 rounded-2xl"><i
+                                        data-lucide="heart-pulse"></i></div>
+                                <div id="dash-status-badge"></div>
+                            </div>
+                            <h4 class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-1">Health
+                                Score</h4>
+                            <p class="text-4xl font-black text-white mb-4" id="dash-health">0</p>
+                            <div class="progress-container">
+                                <div id="dash-health-bar" class="progress-fill bg-indigo-500" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Charts & Insights -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <div class="glass-card p-10 h-[450px]">
+                            <h3 class="text-xl font-black text-white mb-8 flex items-center gap-3"><i
+                                    data-lucide="bar-chart-2" class="text-indigo-400"></i> Subject Proficiency</h3>
+                            <canvas id="subjectChart"></canvas>
+                        </div>
+                        <div class="space-y-6">
+                            <h3 class="text-xl font-black text-white flex items-center gap-3"><i data-lucide="sparkles"
+                                    class="text-amber-400"></i> AI Insights & Suggestions</h3>
+                            <div id="ai-insights-container" class="space-y-4">
+                                <!-- Injected -->
+                            </div>
+                            <div class="glass-card p-8 space-y-5">
+                                <h4 class="font-bold text-white">Report Communication</h4>
+                                <div class="flex gap-4">
+                                    <input type="email" id="report-email" placeholder="guardian@email.com"
+                                        class="flex-1 px-5 py-3.5 bg-white/5 border border-white/10 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 text-white">
+                                    <button onclick="sendSimReport()"
+                                        class="px-8 py-3.5 bg-indigo-600 text-white font-black rounded-2xl hover:bg-indigo-700 active:scale-95 transition-all">Send
+                                        Report</button>
+                                </div>
+                                <p id="report-success" class="text-emerald-400 text-xs font-bold hidden">Email report
+                                    sent successfully ✅</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="no-selection-msg" class="glass-card p-20 text-center space-y-4">
+                    <i data-lucide="users" class="w-16 h-16 text-slate-700 mx-auto"></i>
+                    <h2 class="text-2xl font-black text-slate-600">Select a student from the "Students" list to view
+                        analytics</h2>
+                    <button onclick="showSection('students-list')"
+                        class="px-8 py-4 bg-indigo-600/10 text-indigo-400 font-bold rounded-2xl hover:bg-indigo-600/20">Go
+                        to Students List</button>
+                </div>
+            </div>
+
+            <!-- Attendance Section (Student View) -->
+            <div id="attendance" class="section p-10 space-y-8">
+                <div class="max-w-2xl mx-auto glass-card p-10 text-center space-y-8">
+                    <div class="space-y-4">
+                        <div
+                            class="w-20 h-20 bg-indigo-600/20 text-indigo-400 rounded-full flex items-center justify-center mx-auto">
+                            <i data-lucide="map-pin" class="w-10 h-10"></i>
+                        </div>
+                        <h2 class="text-3xl font-black text-white">Mark Attendance</h2>
+                        <p class="text-slate-400">Location is used only for attendance verification within the classroom
+                            geofence (100m radius).</p>
+                    </div>
+
+                    <div id="attendance-status-card"
+                        class="hidden p-6 rounded-2xl bg-white/5 border border-white/10 space-y-3">
+                        <div id="attendance-badge"
+                            class="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest">
+                        </div>
+                        <p id="attendance-time" class="text-xs text-slate-500 font-bold"></p>
+                        <p id="attendance-loc" class="text-[10px] text-slate-600 font-mono"></p>
+                    </div>
+
+                    <button onclick="handleMarkAttendance()" id="btn-mark-attendance"
+                        class="w-full py-5 bg-indigo-600 text-white font-black rounded-2xl hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-900/40 flex items-center justify-center gap-3">
+                        <i data-lucide="navigation"></i>
+                        <span>Mark My Presence</span>
+                    </button>
+
+                    <p class="text-[10px] text-slate-600 font-bold uppercase tracking-widest">Class Start Time: 09:00 AM
+                    </p>
+                </div>
+            </div>
+
+            <!-- Teacher Admin Panel Section -->
+            <div id="admin-panel" class="section p-10 space-y-8">
+                <div class="flex flex-col md:flex-row justify-between items-end gap-6">
+                    <div>
+                        <h2 class="text-3xl font-black text-white tracking-tight">Teacher Admin Panel</h2>
+                        <p class="text-slate-400 text-sm font-bold uppercase tracking-widest mt-1">Real-time Geofence
+                            Monitoring</p>
+                    </div>
+                    <div class="flex gap-4">
+                        <button onclick="filterAttendance('all')"
+                            class="px-6 py-3 bg-white/5 text-white text-xs font-black rounded-xl border border-white/10 hover:bg-white/10 transition-all">All
+                            Students</button>
+                        <button onclick="filterAttendance('outside')"
+                            class="px-6 py-3 bg-rose-500/10 text-rose-400 text-xs font-black rounded-xl border border-rose-500/20 hover:bg-rose-500/20 transition-all">Outside
+                            Only</button>
+                    </div>
+                </div>
+
+                <div class="glass-card overflow-hidden">
+                    <table class="w-full text-left">
+                        <thead>
+                            <tr class="bg-white/5 text-[10px] font-black uppercase tracking-widest text-slate-500">
+                                <th class="px-8 py-5">Student</th>
+                                <th class="px-8 py-5">Status</th>
+                                <th class="px-8 py-5">Distance</th>
+                                <th class="px-8 py-5">Last Updated</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-attendance-table" class="divide-y divide-white/5">
+                            <!-- Injected -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Students List Section -->
+            <div id="students-list" class="section p-10 space-y-8">
+                <h2 class="text-3xl font-black text-white tracking-tight">Student Directory</h2>
+                <div id="students-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <!-- Student Cards Injected -->
+                </div>
+            </div>
+
+            <!-- Management Section -->
+            <div id="management" class="section p-10 space-y-10">
+                <div class="max-w-3xl mx-auto glass-card p-10 space-y-10">
+                    <h2 class="text-3xl font-black text-white tracking-tight" id="mgmt-title">Add New Student Profile
+                    </h2>
+                    <form id="student-form" class="space-y-6">
+                        <input type="hidden" id="student-id">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-2">
+                                <label
+                                    class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Student
+                                    Name</label>
+                                <input type="text" id="m-name" required
+                                    class="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 text-white">
+                            </div>
+                            <div class="space-y-2">
+                                <label
+                                    class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Student
+                                    Email</label>
+                                <input type="email" id="m-email" required
+                                    class="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 text-white">
+                            </div>
+                            <div class="space-y-2">
+                                <label
+                                    class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Attendance
+                                    (%)</label>
+                                <input type="number" id="m-att" min="0" max="100" required
+                                    class="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 text-white">
+                            </div>
+
+
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Math
+                                    Marks (%)</label>
+                                <input type="number" id="m-math" min="0" max="100" required
+                                    class="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 text-white">
+                            </div>
+                            <div class="space-y-2">
+                                <label
+                                    class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Science
+                                    Marks (%)</label>
+                                <input type="number" id="m-science" min="0" max="100" required
+                                    class="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 text-white">
+                            </div>
+                            <div class="space-y-2">
+                                <label
+                                    class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">English
+                                    Marks (%)</label>
+                                <input type="number" id="m-english" min="0" max="100" required
+                                    class="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 text-white">
+                            </div>
+                        </div>
+                        <div class="pt-6 flex gap-4">
+                            <button type="button" onclick="resetMgmtForm()"
+                                class="flex-1 py-4 bg-white/5 text-slate-400 font-bold rounded-2xl hover:bg-white/10">Clear
+                                Form</button>
+                            <button type="submit"
+                                class="flex-1 py-4 bg-indigo-600 text-white font-black rounded-2xl hover:bg-indigo-700 shadow-xl shadow-indigo-900/40">Save
+                                Student Profile</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Logic Flow Section -->
+            <div id="logic" class="section p-10 space-y-10">
+                <div class="max-w-4xl mx-auto glass-card p-12 space-y-12">
+                    <h2 class="text-3xl font-black text-white tracking-tight flex items-center gap-3"><i
+                            data-lucide="brain-circuit" class="text-indigo-400"></i> Real-Time AI Architecture</h2>
+                    <div class="space-y-8">
+                        <div class="flex gap-6 items-start">
+                            <div
+                                class="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center font-black flex-shrink-0">
+                                1</div>
+                            <div>
+                                <h4 class="text-lg font-black text-white mb-2">Automated Data Analysis</h4>
+                                <p class="text-sm text-slate-400 leading-relaxed">The system automatically processes
+                                    student marks and attendance using a weighted algorithm: <code
+                                        class="bg-white/10 px-2 py-1 rounded">Health = (Marks * 0.7) + (Attendance * 0.3)</code>.
+                                    No manual triggers required.</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-6 items-start">
+                            <div
+                                class="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center font-black flex-shrink-0">
+                                2</div>
+                            <div>
+                                <h4 class="text-lg font-black text-white mb-2">Performance Prediction & Trends</h4>
+                                <p class="text-sm text-slate-400 leading-relaxed">AI classifies students into
+                                    <strong>High Risk</strong>, <strong>Moderate</strong>, or <strong>Good</strong>
+                                    based on averages. It also tracks historical performance to show 📈 Improving or 📉
+                                    Declining trends.
+                                </p>
+                            </div>
+                        </div>
+                        <div class="flex gap-6 items-start">
+                            <div
+                                class="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center font-black flex-shrink-0">
+                                3</div>
+                            <div>
+                                <h4 class="text-lg font-black text-white mb-2">Personalized Intervention Alerts</h4>
+                                <p class="text-sm text-slate-400 leading-relaxed">Weak subjects (< 40%) are flagged
+                                        instantly. The engine generates personalized suggestions for each student to
+                                        guide their improvement path.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Demo Notification Toast -->
+    <div id="demo-toast"
+        class="fixed bottom-10 left-1/2 -translate-x-1/2 z-[200] bg-emerald-600 text-white px-8 py-4 rounded-2xl font-black shadow-2xl flex items-center gap-3">
+        <i data-lucide="check-circle"></i>
+        <span>Login Success (Demo Mode)</span>
+    </div>
+
+    <!-- App Script -->
+    <script src="app.js"></script>
+</body>
+
+</html>
